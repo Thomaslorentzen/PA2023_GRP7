@@ -1,14 +1,13 @@
 import java.io.*;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 
 public class Main {
     public static void main(String[] args) {
-        String rootPath  ="C:/Users/Razer/IdeaProjects/course-02242-examples";
+        String rootPath = "C:\\emacs\\git\\course-02242-examples";
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
-        EvaluateFolder(new File(rootPath), classDependencies);
+        evaluateFolder(new File(rootPath), classDependencies);
 
         for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
             System.out.println("Class: " + entry.getKey());
@@ -17,20 +16,20 @@ public class Main {
         }
     }
 
-    private static void EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
+    private static void evaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
         File[] files = folder.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    EvaluateFolder(file, classDependencies);
+                    evaluateFolder(file, classDependencies);
                 } else if (file.isFile() && file.getName().endsWith(".java")) {
-                    EvaluateFile(file, classDependencies);
+                    evaluateFile(file, classDependencies);
                 }
             }
         }
     }
 
-    private static void EvaluateFile(File file, Map<String, Set<String>> classDependencies) {
+    private static void evaluateFile(File file, Map<String, Set<String>> classDependencies) {
         try {
             String className = file.getName().replace(".java", "");
             Set<String> dependencies = new HashSet<>();
@@ -55,9 +54,28 @@ public class Main {
                     continue;
                 }
 
-                // CODE FOR MATCHERS
-                // ....
-                // ....
+                Pattern importPattern = Pattern.compile("import\\s+([^;]+);");
+                Matcher importMatcher = importPattern.matcher(line);
+                while (importMatcher.find()) {
+                    String dependency = importMatcher.group(1).trim();
+                    dependencies.add(dependency);
+                }
+
+                Pattern staticImportPattern = Pattern.compile("import\\s+static\\s+([^;]+);");
+                Matcher staticImportMatcher = staticImportPattern.matcher(line);
+                while (staticImportMatcher.find()) {
+                    String staticDependency = staticImportMatcher.group(1).trim();
+                    dependencies.add(staticDependency);
+                }
+
+                Pattern classReferencePattern = Pattern.compile("\\b([A-Z]\\w*)\\b");
+                Matcher classReferenceMatcher = classReferencePattern.matcher(line);
+                while (classReferenceMatcher.find()) {
+                    String classReference = classReferenceMatcher.group(1);
+                    if (!classReference.equals(className)) {
+                        dependencies.add(classReference);
+                    }
+                }
             }
             reader.close();
 
@@ -66,5 +84,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-
 }
