@@ -40,6 +40,7 @@ public class Main {
     private static void EvaluateFile(File file, Map<String, Set<String>> classDependencies) {
         try {
             String className = file.getName().replace(".java", "");
+            className = className.toLowerCase();
             Set<String> dependencies = new HashSet<>();
 
             BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -62,30 +63,23 @@ public class Main {
                     continue;
                 }
 
-                // CODE FOR MATCHERS
-                Matcher packageMatcher = Pattern.compile("^package\\s+([a-zA-Z_][a-zA-Z0-9_.]*);").matcher(line);
-                if (packageMatcher.find()) {
-                    String dependency = packageMatcher.group(1);
-                    dependencies.add(dependency);
-                }
-
                 Matcher importMatcher = Pattern.compile("^import\\s+([a-zA-Z_][a-zA-Z0-9_.]*);").matcher(line);
                 if (importMatcher.find()) {
                     String dependency = importMatcher.group(1);
-                    dependencies.add(dependency);
+                    dependencies.add(dependency.toLowerCase());
                 }
 
                 Matcher usageMatcher = Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_.]*)\\s*[.=]\\s*[\\s\\w]*\\(").matcher(line);
                 while (usageMatcher.find()) {
                     String dependency = usageMatcher.group(1);
                     if (!dependency.equals(className)) {
-                        dependencies.add(dependency);
+                        dependencies.add(dependency.toLowerCase());
                     }
                 }
 
                 Matcher instantiationMatcher = Pattern.compile("\\b" + className + "\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*new\\s+" + className + "\\s*\\(").matcher(line);
                 if (instantiationMatcher.find()) {
-                    dependencies.add(className);
+                    dependencies.add(className.toLowerCase());
                 }
             }
             reader.close();
