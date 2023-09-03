@@ -1,0 +1,20 @@
+digraph G { 
+Utils -> System_out;
+Utils -> dtu_deps_util;
+Example -> other;
+Example -> dtu_deps_simple;
+Example -> Utils;
+Example -> dtu_deps_util_Utils;
+Tricky -> dtu;
+Tricky -> dtu_deps_tricky;
+Tricky -> Tricky;
+Tricky -> dtu_deps_simple_Other;
+Primes -> java_util_List;
+Primes -> primes;
+Primes -> java_util_Iterator;
+Primes -> dtu_deps_normal;
+Primes -> System_out;
+Primes -> java_util_ArrayList;
+Other -> dtu_deps_simple;
+Other -> dtu_deps_util_Utils;
+}

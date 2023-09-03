@@ -1,5 +1,9 @@
+import java.awt.*;
 import java.io.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,10 +15,13 @@ public class Main {
         EvaluateFolder(new File(rootPath), classDependencies);
 
         for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
-            System.out.println("Class: " + entry.getKey());
-            System.out.println("Dependencies: " + entry.getValue());
-            System.out.println();
+            System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
         }
+
+        String dotFilePath = "class_dependency_graph.dot";
+
+        plotGraph(classDependencies);
+
     }
 
     private static void EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
@@ -56,8 +63,30 @@ public class Main {
                 }
 
                 // CODE FOR MATCHERS
-                // ....
-                // ....
+                Matcher packageMatcher = Pattern.compile("^package\\s+([a-zA-Z_][a-zA-Z0-9_.]*);").matcher(line);
+                if (packageMatcher.find()) {
+                    String dependency = packageMatcher.group(1);
+                    dependencies.add(dependency);
+                }
+
+                Matcher importMatcher = Pattern.compile("^import\\s+([a-zA-Z_][a-zA-Z0-9_.]*);").matcher(line);
+                if (importMatcher.find()) {
+                    String dependency = importMatcher.group(1);
+                    dependencies.add(dependency);
+                }
+
+                Matcher usageMatcher = Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_.]*)\\s*[.=]\\s*[\\s\\w]*\\(").matcher(line);
+                while (usageMatcher.find()) {
+                    String dependency = usageMatcher.group(1);
+                    if (!dependency.equals(className)) {
+                        dependencies.add(dependency);
+                    }
+                }
+
+                Matcher instantiationMatcher = Pattern.compile("\\b" + className + "\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*new\\s+" + className + "\\s*\\(").matcher(line);
+                if (instantiationMatcher.find()) {
+                    dependencies.add(className);
+                }
             }
             reader.close();
 
@@ -67,4 +96,49 @@ public class Main {
         }
     }
 
+    public static void plotGraph(Map<String, Set<String>> dependencyMap) {
+        createDotFile(dependencyMap);
+
+        String dotFilePath = "output.dot";
+        String outputFilePath = "outputGraph.png";
+
+        try {
+            String[] command = {"dot", "-Tpng", dotFilePath, "-o", outputFilePath};
+
+            Process process = Runtime.getRuntime().exec(command);
+
+            int exitCode = process.waitFor();
+
+            if (exitCode == 0) {
+                System.out.println("Graph visualization generated successfully.");
+
+                File pngFile = new File(outputFilePath);
+                Desktop.getDesktop().open(pngFile);
+            } else {
+                System.err.println("Error generating graph visualization. Exit code: " + exitCode);
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createDotFile(Map<String, Set<String>> map) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.dot"))) {
+            writer.write("digraph G { ");
+            writer.newLine();
+            for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
+                String key = entry.getKey();
+                Set<String> values = entry.getValue();
+
+                for (String value : values) {
+                    writer.write(key + " -> ");
+                    writer.write(value.replace(".","_") + ";");
+                    writer.newLine();
+                }
+            }
+            writer.write("}");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

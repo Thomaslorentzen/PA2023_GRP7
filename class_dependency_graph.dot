@@ -1,0 +1,24 @@
+digraph ClassDependencyGraph {
+  Utils;
+  Utils -> System.out;
+  Utils -> dtu.deps.util;
+  Example;
+  Example -> other;
+  Example -> dtu.deps.simple;
+  Example -> Utils;
+  Example -> dtu.deps.util.Utils;
+  Tricky;
+  Tricky -> dtu;
+  Tricky -> dtu.deps.tricky;
+  Tricky -> dtu.deps.simple.Other;
+  Primes;
+  Primes -> java.util.List;
+  Primes -> primes;
+  Primes -> java.util.Iterator;
+  Primes -> dtu.deps.normal;
+  Primes -> System.out;
+  Primes -> java.util.ArrayList;
+  Other;
+  Other -> dtu.deps.simple;
+  Other -> dtu.deps.util.Utils;
+}
