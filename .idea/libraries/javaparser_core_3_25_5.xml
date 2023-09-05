@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="javaparser-core-3.25.5">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/Downloads/JavaParser/jar_files/javaparser-core-3.25.5.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/JavaParser/jar_files/javaparser-symbol-solver-core-3.25.5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

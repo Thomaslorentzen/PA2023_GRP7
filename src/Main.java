@@ -1,31 +1,43 @@
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ImportTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.util.JavacTask;
+import com.sun.source.util.TreeScanner;
+
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 import java.awt.*;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Main {
-    public static void main(String[] args) {
-        String rootPath  ="C:/Users/Razer/IdeaProjects/course-02242-examples";
+    public static void main(String[] args) throws IOException {
+        String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
         EvaluateFolder(new File(rootPath), classDependencies);
 
-        for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
-            System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
-        }
+         for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
+             System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
+         }
 
-        String dotFilePath = "class_dependency_graph.dot";
-
+        //String dotFilePath = "class_dependency_graph.dot";
         plotGraph(classDependencies);
 
     }
 
     private static void EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
-        File[] files = folder.listFiles();
+         File[] files = folder.listFiles();
+        
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
@@ -39,57 +51,51 @@ public class Main {
 
     private static void EvaluateFile(File file, Map<String, Set<String>> classDependencies) {
         try {
-            String className = file.getName().replace(".java", "");
-            className = className.toLowerCase();
-            Set<String> dependencies = new HashSet<>();
+            JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+            StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+            Iterable<? extends JavaFileObject> fileObjects = fileManager.getJavaFileObjects(file);
+            JavacTask javacTask = (JavacTask) compiler.getTask(null, fileManager, null, null, null, fileObjects);
 
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-            boolean inBlockComment = false;
-
-            while ((line = reader.readLine()) != null) {
-                if (inBlockComment) {
-                    if (line.contains("*/")) {
-                        inBlockComment = false;
-                    }
-                    continue;
-                } else {
-                    if (line.contains("/*")) {
-                        inBlockComment = !line.contains("*/");
-                        continue;
+            for (CompilationUnitTree compilationUnit : javacTask.parse()) {
+                String className = "";
+                for (Tree tree : compilationUnit.getTypeDecls()) {
+                    if (tree instanceof ClassTree) {
+                        className = ((ClassTree) tree).getSimpleName().toString();
+                        break;
                     }
                 }
-                if (line.trim().startsWith("//")) {
-                    continue;
-                }
-
-                Matcher importMatcher = Pattern.compile("^import\\s+([a-zA-Z_][a-zA-Z0-9_.]*);").matcher(line);
-                if (importMatcher.find()) {
-                    String dependency = importMatcher.group(1);
-                    dependencies.add(dependency.toLowerCase());
-                }
-
-                Matcher usageMatcher = Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_.]*)\\s*[.=]\\s*[\\s\\w]*\\(").matcher(line);
-                while (usageMatcher.find()) {
-                    String dependency = usageMatcher.group(1);
-                    if (!dependency.equals(className)) {
-                        dependencies.add(dependency.toLowerCase());
-                    }
-                }
-
-                Matcher instantiationMatcher = Pattern.compile("\\b" + className + "\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*new\\s+" + className + "\\s*\\(").matcher(line);
-                if (instantiationMatcher.find()) {
-                    dependencies.add(className.toLowerCase());
-                }
+                className = className.toLowerCase();
+                Set<String> dependencies = extractDependencies(compilationUnit);
+                classDependencies.put(className, dependencies);
             }
-            reader.close();
 
-            classDependencies.put(className, dependencies);
+            fileManager.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    private static Set<String> extractDependencies(CompilationUnitTree compilationUnit) {
+        Set<String> dependencies = new HashSet<>();
+        TreeScanner<Void, Void> scanner = new TreeScanner<Void, Void>() {
+            @Override
+            public Void visitImport(ImportTree importTree, Void aVoid) {
+                String importText = importTree.toString();
+
+                if (importText.endsWith(".*")) {
+                    importText = importText.substring(0, importText.length() - 2);
+                }
+
+                String className = importText.replace('.', '/');
+                dependencies.add(className);
+
+                return super.visitImport(importTree, aVoid);
+            }
+        };
+        compilationUnit.accept(scanner, null);
+
+        return dependencies;
+    }
     public static void plotGraph(Map<String, Set<String>> dependencyMap) {
         createDotFile(dependencyMap);
 
@@ -126,7 +132,7 @@ public class Main {
 
                 for (String value : values) {
                     writer.write(key + " -> ");
-                    writer.write(value.replace(".","_") + ";");
+                    writer.write(value.replace("/",".").replace(".*",""));
                     writer.newLine();
                 }
             }

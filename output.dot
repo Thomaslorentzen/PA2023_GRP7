@@ -1,13 +1,4 @@
 digraph G { 
-primes -> java_util_arraylist;
-primes -> java_util_list;
-primes -> java_util_iterator;
-primes -> system_out;
-other -> dtu_deps_util_utils;
-utils -> system_out;
-example -> dtu_deps_util_utils;
-example -> other;
-example -> utils;
-tricky -> dtu;
-tricky -> dtu_deps_simple_other;
+example -> import dtu.compute.util.Utils;
+
 }
