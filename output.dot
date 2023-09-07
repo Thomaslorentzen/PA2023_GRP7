@@ -1,4 +1,9 @@
 digraph G { 
-example -> import dtu.compute.util.Utils;
+other -> dtu_compute_util_utils
+other -> string[]
+dtu_compute_util_utils -> system_out
+example -> other
+example ->  dtu_compute_util_utils
 
+example -> string[]
 }

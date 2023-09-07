@@ -1,7 +1,4 @@
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.ImportTree;
-import com.sun.source.tree.Tree;
+import com.sun.source.tree.*;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.TreeScanner;
 
@@ -22,6 +19,8 @@ import java.util.Set;
 public class Main {
     public static void main(String[] args) throws IOException {
         String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
+        //String path1 = "C:/Users/Razer/IdeaProjects/course-02242-examples";
+
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
         EvaluateFolder(new File(rootPath), classDependencies);
@@ -83,6 +82,57 @@ public class Main {
                 String importText = importTree.toString();
 
                 if (importText.endsWith(".*")) {
+                    importText = importText.substring(importText.lastIndexOf('.'), importText.length() - 2);
+                }
+                String className = importText.replace('/', '.')
+                        .replace("import", "")
+                        .replace(";","").toLowerCase();
+                dependencies.add(className);
+
+                return super.visitImport(importTree, aVoid);
+            }
+
+            @Override
+            public Void visitVariable(VariableTree variableTree, Void aVoid) {
+                String variableType = variableTree.getType().toString();
+
+
+                dependencies.add(variableType.replace('.', '/').toLowerCase());
+                return super.visitVariable(variableTree, aVoid);
+            }
+
+            @Override
+            public Void visitMethodInvocation(MethodInvocationTree methodInvocationTree, Void aVoid) {
+                String methodName = methodInvocationTree.getMethodSelect().toString();
+                if (methodName.contains(".")) {
+                    String dependency = methodName.substring(0, methodName.lastIndexOf('.'));
+                    int firstIndex = methodName.indexOf('.');
+                    int lastIndex = methodName.lastIndexOf('.');
+                    if(firstIndex != lastIndex)
+                        dependencies.add(dependency.toLowerCase());
+                    //dependency = dependency.replace('.', '/');
+                }
+                return super.visitMethodInvocation(methodInvocationTree, aVoid);
+            }
+
+            // Add more visit methods as needed to handle other dependencies (e.g., field references, class instantiations, etc.)
+        };
+
+        // Use the scanner to traverse the syntax tree
+        compilationUnit.accept(scanner, null);
+
+        return dependencies;
+    }
+
+    /*
+    private static Set<String> extractDependencies(CompilationUnitTree compilationUnit) {
+        Set<String> dependencies = new HashSet<>();
+        TreeScanner<Void, Void> scanner = new TreeScanner<Void, Void>() {
+            @Override
+            public Void visitImport(ImportTree importTree, Void aVoid) {
+                String importText = importTree.toString();
+
+                if (importText.endsWith(".*")) {
                     importText = importText.substring(0, importText.length() - 2);
                 }
 
@@ -95,9 +145,9 @@ public class Main {
         compilationUnit.accept(scanner, null);
 
         return dependencies;
-    }
+    } */
     public static void plotGraph(Map<String, Set<String>> dependencyMap) {
-        createDotFile(dependencyMap);
+        //createDotFile(dependencyMap);
 
         String dotFilePath = "output.dot";
         String outputFilePath = "outputGraph.png";
@@ -121,7 +171,6 @@ public class Main {
             e.printStackTrace();
         }
     }
-
     private static void createDotFile(Map<String, Set<String>> map) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.dot"))) {
             writer.write("digraph G { ");
@@ -132,7 +181,7 @@ public class Main {
 
                 for (String value : values) {
                     writer.write(key + " -> ");
-                    writer.write(value.replace("/",".").replace(".*",""));
+                    writer.write(value.replace(".*","").replace(".","_"));
                     writer.newLine();
                 }
             }
