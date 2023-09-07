@@ -1,9 +1,9 @@
 digraph G { 
-other -> dtu_compute_util_utils
-other -> string[]
-dtu_compute_util_utils -> system_out
+other -> string
+other -> utils
+utils -> system
 example -> other
-example ->  dtu_compute_util_utils
+example -> string
+example -> utils
 
-example -> string[]
 }
