@@ -1,32 +1,65 @@
 import com.sun.source.tree.*;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.TreeScanner;
+import org.json.simple.JSONObject;
 
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.awt.*;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.*;
+import java.io.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
+        //String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
+        String path1 = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
+
+        try (FileInputStream fis = new FileInputStream(path1);
+             ZipInputStream zis = new ZipInputStream(fis)) {
+
+            byte[] buffer = new byte[1024];
+            ZipEntry zipEntry;
+
+            while ((zipEntry = zis.getNextEntry()) != null) {
+                String entryName = zipEntry.getName();
+                if (!zipEntry.isDirectory()) {
+                    File outFile = new File(entryName);
+                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                        int len;
+                        while ((len = zis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, len);
+                        }
+                        System.out.println("Extracted: " + outFile.getAbsolutePath());
+                    }
+                }
+            }
+
+            System.out.println("Extraction completed.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
 
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
-        EvaluateFolder(new File(rootPath), classDependencies);
+        JSONObject jsonObject=new JSONObject();
 
-         for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
-             System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
-         }
+        EvaluateFolder(new File(path1), classDependencies);
+
+         //for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
+         //    System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
+         //}
 
         //String dotFilePath = "class_dependency_graph.dot";
-        plotGraph(classDependencies);
+        //plotGraph(classDependencies);
 
     }
 
@@ -37,12 +70,55 @@ public class Main {
             for (File file : files) {
                 if (file.isDirectory()) {
                     EvaluateFolder(file, classDependencies);
-                } else if (file.isFile() && file.getName().endsWith(".java")) {
-                    EvaluateFile(file, classDependencies);
+                } else if (file.isFile() && file.getName().endsWith(".class")) {
+                    //EvaluateFile(file, classDependencies);
+                    convertJavaToClassFormat(file, classDependencies);
                 }
             }
         }
     }
+
+    private static void convertJavaToClassFormat(File file, Map<String, Set<String>> classDependencies){
+        try{;
+
+            String filePath = file.getPath();
+            //filePath = filePath.replace("java", "");
+            String[] convertJavaToClassFileCommand = {"javac ", filePath};
+
+            Process process1 = Runtime.getRuntime().exec(convertJavaToClassFileCommand);
+            
+            int process1ExitCode = process1.waitFor();
+
+            // jvm2json -s Test.class -t test.json
+            
+            if(process1ExitCode == 0){
+                String filePathWithClassExtension = file.getPath().replace(".java", ".class");
+                //String jsonPath = file.getPath().replace(".java", ".json");
+
+                String jsonFilePath = file.getPath().replace(".java", ".json");
+                String[] convertClassToJsonFileCommand = {"jvm2json >", filePathWithClassExtension, " <" , jsonFilePath};
+                Process process2 = Runtime.getRuntime().exec(convertClassToJsonFileCommand);
+                int process2ExitCode = process2.waitFor();
+
+                if(process2ExitCode == 0){
+                    System.out.println("Here we go");
+                    // read json file:::
+                }
+                else{
+                    System.err.println("Converting .class file to json. Exit Code: "+process2ExitCode);
+                }
+
+            }
+            else{
+                System.err.println("Converting java to class format. Exit code: " + process1ExitCode);
+            }
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }
+    }
+
+    //private static Set<String> extractDependenciesFromJsonFile(File file, Map<String, Set<String>> classDependencies){
+    //}
 
     private static void EvaluateFile(File file, Map<String, Set<String>> classDependencies) {
         try {
@@ -128,7 +204,7 @@ public class Main {
     }
 
     public static void plotGraph(Map<String, Set<String>> dependencyMap) {
-        createDotFile(dependencyMap);
+        //createDotFile(dependencyMap);
 
         String dotFilePath = "output.dot";
         String outputFilePath = "outputGraph.png";

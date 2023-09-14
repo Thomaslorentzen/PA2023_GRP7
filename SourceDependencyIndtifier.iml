@@ -8,5 +8,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="javaparser-core-3.25.5" level="project" />
+    <orderEntry type="library" name="json-simple-1.1" level="project" />
   </component>
 </module>

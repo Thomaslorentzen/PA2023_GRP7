@@ -1,4 +1,15 @@
 digraph G { 
+primes -> iterator
+
+primes -> list
+
+primes -> boolean
+primes -> system
+primes -> string
+primes -> list<integer>
+primes -> arraylist
+
+primes -> int
 other -> string
 other -> utils
 utils -> system
@@ -6,4 +17,9 @@ example -> other
 example -> string
 example -> utils
 
+tricky -> other
+tricky -> utils
+
+tricky -> example
+tricky -> tricky
 }
