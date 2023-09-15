@@ -9,42 +9,23 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.awt.*;
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Main {
     public static void main(String[] args) throws IOException {
         //String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
-        String path1 = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
+        String sourcePath = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
+        String extractionPath = "C:/Users/Razer/IdeaProjects/ExtractedFiles/";
 
-        try (FileInputStream fis = new FileInputStream(path1);
-             ZipInputStream zis = new ZipInputStream(fis)) {
+        // STEP 1: UNZIP JAR FILE
+        var classFilePathList = unzipFolder(sourcePath, extractionPath);
 
-            byte[] buffer = new byte[1024];
-            ZipEntry zipEntry;
+        // STEP 2: CONVERT TO CLASS TO JSON
+        var jsonFilesList = convertClassFilesToJson(classFilePathList);
 
-            while ((zipEntry = zis.getNextEntry()) != null) {
-                String entryName = zipEntry.getName();
-                if (!zipEntry.isDirectory()) {
-                    File outFile = new File(entryName);
-                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) {
-                            fos.write(buffer, 0, len);
-                        }
-                        System.out.println("Extracted: " + outFile.getAbsolutePath());
-                    }
-                }
-            }
-
-            System.out.println("Extraction completed.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // STEP 3: FIND DEPENDENCIES IN JSON FILES
 
 
 
@@ -52,7 +33,8 @@ public class Main {
 
         JSONObject jsonObject=new JSONObject();
 
-        EvaluateFolder(new File(path1), classDependencies);
+
+        //EvaluateFolder(new File(sourcePath), classDependencies);
 
          //for (Map.Entry<String, Set<String>> entry : classDependencies.entrySet()) {
          //    System.out.println("Class: " + entry.getKey() + " depends on : " + entry.getValue());
@@ -61,6 +43,71 @@ public class Main {
         //String dotFilePath = "class_dependency_graph.dot";
         //plotGraph(classDependencies);
 
+    }
+
+    private static ArrayList<String> unzipFolder(String sourcePath, String targetPath){
+        var classFilesList = new ArrayList<String>();
+
+        try (FileInputStream fis = new FileInputStream(sourcePath);
+             ZipInputStream zis = new ZipInputStream(fis)) {
+
+            byte[] buffer = new byte[1024];
+            ZipEntry zipEntry;
+
+            while ((zipEntry = zis.getNextEntry()) != null) {
+                String entryName = zipEntry.getName();
+
+                if (!zipEntry.isDirectory()) {
+
+                    // Create directories if they don't exist
+                    File outFile = new File(targetPath, entryName);
+                    File parentDir = outFile.getParentFile();
+
+                    // Create parent directories
+                    if (parentDir != null && !parentDir.exists()) {
+                        parentDir.mkdirs();
+                    }
+
+                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                        int len;
+                        while ((len = zis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, len);
+                        }
+
+                        if(outFile.getName().endsWith(".class") && !outFile.getName().contains("$")){
+                            classFilesList.add(outFile.getAbsolutePath());
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return classFilesList;
+    }
+
+    private static ArrayList<String> convertClassFilesToJson(ArrayList<String> classFilesList){
+        var jsonFilesList = new ArrayList<String>();
+
+        for (String file : classFilesList) {
+            String jsonFilePath = file.replace(".class", ".json");
+            String[] command = {"jvm2json","-s", file, "-t", jsonFilePath};
+
+            try {
+                Process process = Runtime.getRuntime().exec(command);
+                int processExitCode = process.waitFor();
+
+                if(processExitCode == 0) jsonFilesList.add(jsonFilePath);
+
+                if (processExitCode != 0)
+                    System.out.println("ERROR: While Converting .class file to json :=> " + file);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return jsonFilesList;
     }
 
     private static void EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
