@@ -20,7 +20,8 @@ import java.util.zip.ZipInputStream;
 public class Main {
     public static void main(String[] args) throws IOException {
         //String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
-        String sourcePath = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
+        //String sourcePath = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
+        String sourcePath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs-1.0-SNAPSHOT.jar";
         String extractionPath = "C:/Users/Razer/IdeaProjects/ExtractedFiles/";
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
@@ -105,7 +106,6 @@ public class Main {
 
                     var classDependencies = analyzeJsonFile(jsonFilePath);
 
-
                     //for(int i=0, i<classDependencies.size(); )
 
                     String className="";
@@ -115,6 +115,13 @@ public class Main {
                         className = matcher.group(1);
                         className = className.replace(".json","");
                     }
+
+                    /*int lastSlashIndex = jsonFilePath.lastIndexOf("\\");
+                    int jsonExtensionIndex = jsonFilePath.lastIndexOf(".json");
+
+                    if (lastSlashIndex >= 0 && jsonExtensionIndex > lastSlashIndex) {
+                        className = jsonFilePath.substring(lastSlashIndex + 1, jsonExtensionIndex);
+                    }*/
 
                     Set<String> dependenciesList = new HashSet<>(classDependencies);
                     depenedencies.put(className, dependenciesList);
