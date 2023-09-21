@@ -21,21 +21,35 @@ public class Main {
     public static void main(String[] args) throws IOException {
         //String rootPath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs";
         //String sourcePath = "C:/Users/Razer/IdeaProjects/PA-1.0-SNAPSHOT.jar";
-        String sourcePath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs-1.0-SNAPSHOT.jar";
+        //String sourcePath = "C:/Users/Razer/IdeaProjects/example-dependency-graphs-1.0-SNAPSHOT.jar";
+        String sourcePath = "C:/Users/Razer/IdeaProjects/course-02242-examples/decompiled/dtu/compute/exec";
         String extractionPath = "C:/Users/Razer/IdeaProjects/ExtractedFiles/";
         Map<String, Set<String>> classDependencies = new HashMap<>();
 
+        var jsonFilesList = EvaluateFolder(new File(sourcePath), classDependencies);
+
+        ArrayList<Object> cases1 = new ArrayList<>();
+        for(int i=0; i<jsonFilesList.size(); i++){
+            var cases  = analyzeJsonFile(jsonFilesList.get(i));
+
+            cases1.add(cases);
+        }
+
+
+
+
+
+        // STEP 1: Get Json Files Path:
+
+        // STEP 2: Get Bytecode:
+
         // STEP 1: UNZIP JAR FILE
-        var classFilePathList = unzipFolder(sourcePath, extractionPath);
+        //var classFilePathList = unzipFolder(sourcePath, extractionPath);
 
         // STEP 2: CONVERT TO CLASS TO JSON
-        var jsonFilesList = convertClassFilesToJson(classFilePathList, classDependencies);
+        //var jsonFilesList = convertClassFilesToJson(classFilePathList, classDependencies);
 
         // STEP 3: FIND DEPENDENCIES IN JSON FILES
-
-
-
-
 
         //EvaluateFolder(new File(sourcePath), classDependencies);
 
@@ -44,7 +58,7 @@ public class Main {
          //}
 
         //String dotFilePath = "class_dependency_graph.dot";
-        plotGraph(classDependencies);
+        //plotGraph(classDependencies);
 
     }
 
@@ -123,8 +137,8 @@ public class Main {
                         className = jsonFilePath.substring(lastSlashIndex + 1, jsonExtensionIndex);
                     }*/
 
-                    Set<String> dependenciesList = new HashSet<>(classDependencies);
-                    depenedencies.put(className, dependenciesList);
+                    //Set<String> dependenciesList = new HashSet<>(classDependencies);
+                    //depenedencies.put(className, dependenciesList);
                 }
 
                 if (processExitCode != 0)
@@ -137,14 +151,13 @@ public class Main {
         return jsonFilesList;
     }
 
-    private static ArrayList<String> analyzeJsonFile(String filePath){
-        var dependencies = new ArrayList<String>();
+    private static ArrayList<Object> analyzeJsonFile(String filePath){
+        var dependencies = new ArrayList<Object>();
 
 
         JSONParser jsonParser = new JSONParser();
 
         try{
-            String staticPath = "C:/Users/Razer/IdeaProjects/ExtractedFiles/dtu/deps/tricky/Tricky.json";
             FileReader file = new FileReader(filePath);
 
             Object object = jsonParser.parse(file);
@@ -154,10 +167,10 @@ public class Main {
             dependencies = extractDependenciesFromJsonFile(jsonObject);
 
             System.out.println(filePath);
-            for (String dependency : dependencies) {
+            /*for (String dependency : dependencies) {
                 System.out.println("Dependency: " + dependency);
             }
-            System.out.println();
+            System.out.println();*/
 
         }catch(Exception e){
             e.printStackTrace();
@@ -166,117 +179,46 @@ public class Main {
         return dependencies;
     }
 
-    private static ArrayList<String> extractDependenciesFromJsonFile(JSONObject jsonObject){
-        ArrayList<String> dependencies = new ArrayList<>();
-
-        JSONArray fields = (JSONArray) jsonObject.get("fields");
-        if (fields != null) {
-            for (Object fieldObj : fields) {
-                JSONObject field = (JSONObject) fieldObj;
-                JSONObject type = (JSONObject) field.get("type");
-                if (type != null) {
-                    String kind = (String) type.get("kind");
-                    if ("class".equals(kind)) {
-                        String typeName = (String) type.get("name");
-                        if (typeName != null) {
-                            if(!dependencies.contains(typeName)){
-                                String[] parts = typeName.split("/");
-
-                                if(parts.length>0){
-                                    typeName = parts[parts.length-1];
-                                }
-
-                                dependencies.add(typeName);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /*
-        JSONArray methods = (JSONArray) jsonObject.get("methods");
-        if (methods != null) {
-            for (Object methodObj : methods) {
-                JSONObject method = (JSONObject) methodObj;
-                JSONObject returns = (JSONObject) method.get("returns");
-                if (returns != null) {
-                    JSONObject type = (JSONObject) returns.get("type");
-                    if (type != null) {
-                        String kind = (String) type.get("kind");
-                        if ("class".equals(kind)) {
-                            String typeName = (String) type.get("name");
-                            if (typeName != null) {
-                                dependencies.add(typeName);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        */
+    private static ArrayList<Object> extractDependenciesFromJsonFile(JSONObject jsonObject){
+        ArrayList<Object> cases = new ArrayList<>();
 
         JSONArray methods = (JSONArray) jsonObject.get("methods");
-        for (Object methodObj : methods) {
-            JSONObject method = (JSONObject) methodObj;
-
-            // Extract method parameters dependencies
-            JSONArray params = (JSONArray) method.get("params");
-            for (Object paramObj : params) {
-                JSONObject param = (JSONObject) paramObj;
-                JSONObject type = (JSONObject) param.get("type");
-                if (type != null) {
-                    String typeName = (String) type.get("name");
-                    if (typeName != null) {
-                        String[] parts = typeName.split("/");
-
-                        if(parts.length>0){
-                            typeName = parts[parts.length-1];
+        /*if (methods != null) {
+            for (Object fieldObj : methods) {
+                JSONObject method = (JSONObject) fieldObj;
+                String name =  method.get("name").toString();
+                JSONObject code = (JSONObject) method.get("code");
+                if (code != null) {
+                    JSONArray bytecode =  (JSONArray) code.get("bytecode");
+                    if (bytecode != null) {
+                        for(int i =0; i<bytecode.size();i++){
+                            System.out.println(name);
+                            System.out.println(bytecode.get(i));
                         }
-
-                        dependencies.add(typeName);
-                    }
-                }
-            }
-
-
-            // Extract method return type dependency
-            JSONObject returnType = (JSONObject) method.get("returns");
-            if (returnType != null) {
-                JSONObject type = (JSONObject) returnType.get("type");
-                if (type != null) {
-                    String typeName = (String) type.get("name");
-                    if (typeName != null) {
-                        String[] parts = typeName.split("/");
-
-                        if(parts.length>0){
-                            typeName = parts[parts.length-1];
-                        }
-
-                        dependencies.add(typeName);
                     }
                 }
             }
         }
+         */
 
-        JSONArray innerClasses = (JSONArray) jsonObject.get("innerclasses");
-        if (innerClasses != null) {
-            for (Object innerClassObj : innerClasses) {
-                JSONObject innerClass = (JSONObject) innerClassObj;
-                String className = (String) innerClass.get("class");
-                if (className != null && !className.contains("$")) {
-                    String[] parts = className.split("/");
+        for(int i=0;i<methods.size();i++){
+            JSONObject method = (JSONObject) methods.get(i);
+            JSONArray annotations = (JSONArray) method.get("annotations");
+            for(int j=0; j<annotations.size();j++){
 
-                    if(parts.length>0){
-                        className = parts[parts.length-1];
-                    }
 
-                    dependencies.add(className);
+                if(annotations.get(j) == "dtu/compute/exec/Case"){
+                    cases.add(annotations);
                 }
             }
         }
 
-        return dependencies;
+
+
+
+
+
+        return cases;
     }
 
     private static void convertJavaToClassFormat(File file, Map<String, Set<String>> classDependencies){
@@ -318,19 +260,24 @@ public class Main {
         }
     }
 
-    private static void EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
+    private static ArrayList<String> EvaluateFolder(File folder, Map<String, Set<String>> classDependencies) {
         File[] files = folder.listFiles();
+        ArrayList<String> jsonFilesList = new ArrayList<String>();
 
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
                     EvaluateFolder(file, classDependencies);
-                } else if (file.isFile() && file.getName().endsWith(".class")) {
+                } else if (file.isFile() && file.getName().endsWith(".json")) {
                     //EvaluateFile(file, classDependencies);
-                    convertJavaToClassFormat(file, classDependencies);
+                    //convertJavaToClassFormat(file, classDependencies);
+                    //analyzeJsonFile(file.getPath());
+                    jsonFilesList.add(file.getPath());
                 }
             }
         }
+
+        return jsonFilesList;
     }
     private static void EvaluateFile(File file, Map<String, Set<String>> classDependencies) {
         try {
